@@ -1,0 +1,156 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Tiny Crap · Admin</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons">
+<link rel="stylesheet" href="https://code.getmdl.io/1.3.0/material.indigo-pink.min.css">
+<script defer src="https://code.getmdl.io/1.3.0/material.min.js"></script>
+<style>
+  body{background:#f4f4f6}.mdl-card{width:100%;min-height:0}.mdl-card__title h2{font-size:18px}
+  .mdl-card__supporting-text{width:auto;overflow-x:auto}.mdl-data-table{width:100%;border:0}
+  .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(340px,1fr));gap:16px;padding:16px;max-width:1300px;margin:auto}
+  .wide{grid-column:1/-1}.big{font-size:34px;font-weight:300;line-height:1.1}.muted{color:#777;font-size:12px}
+  .stat{display:inline-block;min-width:110px;margin:0 18px 8px 0}.bar{height:6px;background:#ddd;border-radius:3px;min-width:90px}
+  .bar i{display:block;height:100%;background:#3f51b5;border-radius:3px}.ok{color:#2e7d32}.bad{color:#c62828}.warn{color:#ef6c00}
+  pre{background:#263238;color:#e0f2f1;padding:10px;border-radius:4px;overflow:auto;font-size:12px;white-space:pre-wrap;word-break:break-all}
+  .row{display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end}.row .mdl-textfield{flex:1;min-width:160px}
+  #newkey{display:none;background:#fff8e1;border:1px solid #ffe082;padding:10px;border-radius:4px;margin:8px 0;word-break:break-all}
+  td,th{white-space:nowrap}td.w{white-space:normal;word-break:break-all}.mdl-button--icon{color:#666}
+</style>
+</head>
+<body>
+<div class="mdl-layout mdl-js-layout mdl-layout--fixed-header">
+  <header class="mdl-layout__header"><div class="mdl-layout__header-row">
+    <span class="mdl-layout-title">Tiny Crap · Admin</span><div class="mdl-layout-spacer"></div>
+    <span id="live" class="muted" style="color:#fff">connecting…</span>
+  </div></header>
+  <main class="mdl-layout__content"><div class="grid">
+
+    <div class="mdl-card mdl-shadow--2dp"><div class="mdl-card__title"><h2>Health</h2></div>
+      <div class="mdl-card__supporting-text" id="health"></div></div>
+
+    <div class="mdl-card mdl-shadow--2dp"><div class="mdl-card__title"><h2>Downloads (lifetime)</h2></div>
+      <div class="mdl-card__supporting-text" id="stats"></div></div>
+
+    <div class="mdl-card mdl-shadow--2dp wide"><div class="mdl-card__title"><h2>Running &amp; waiting</h2></div>
+      <div class="mdl-card__supporting-text">
+        <div id="queue" class="muted"></div><div id="jobs"></div></div></div>
+
+    <div class="mdl-card mdl-shadow--2dp wide"><div class="mdl-card__title"><h2>API keys</h2></div>
+      <div class="mdl-card__supporting-text">
+        <label class="mdl-switch mdl-js-switch" for="req"><input type="checkbox" id="req" class="mdl-switch__input">
+          <span class="mdl-switch__label">Require an API key for analyze / download</span></label>
+        <div class="muted" id="reqnote"></div>
+        <div class="row"><div class="mdl-textfield mdl-js-textfield"><input class="mdl-textfield__input" id="kname" maxlength="60">
+          <label class="mdl-textfield__label" for="kname">Customer / key name</label></div>
+          <div class="mdl-textfield mdl-js-textfield" style="max-width:170px"><input class="mdl-textfield__input" id="krate" type="number" min="1" max="10000">
+          <label class="mdl-textfield__label" for="krate">Requests / minute (optional)</label></div>
+          <button class="mdl-button mdl-js-button mdl-button--raised mdl-button--colored" onclick="makeKey()">Create key</button></div>
+        <div id="newkey"></div><div id="keys"></div></div></div>
+
+    <div class="mdl-card mdl-shadow--2dp wide"><div class="mdl-card__title"><h2>App update</h2></div>
+      <div class="mdl-card__supporting-text">
+        <div class="muted">Publish a new version: every app running an older version code must update (no skip button) until the new APK is installed.</div>
+        <div class="row"><div class="mdl-textfield mdl-js-textfield"><input class="mdl-textfield__input" id="utitle" maxlength="100">
+          <label class="mdl-textfield__label" for="utitle">Update title</label></div>
+          <div class="mdl-textfield mdl-js-textfield" style="flex:2"><input class="mdl-textfield__input" id="ulink">
+          <label class="mdl-textfield__label" for="ulink">Download link (https://…)</label></div>
+          <div class="mdl-textfield mdl-js-textfield" style="max-width:120px"><input class="mdl-textfield__input" id="ucode" type="number" min="1">
+          <label class="mdl-textfield__label" for="ucode">Version code</label></div>
+          <div class="mdl-textfield mdl-js-textfield" style="max-width:120px"><input class="mdl-textfield__input" id="uname" maxlength="20">
+          <label class="mdl-textfield__label" for="uname">Version name</label></div>
+          <button class="mdl-button mdl-js-button mdl-button--raised mdl-button--colored" onclick="makeUpdate()">Publish</button></div>
+        <div id="updates"></div></div></div>
+
+    <div class="mdl-card mdl-shadow--2dp wide"><div class="mdl-card__title"><h2>API documentation</h2></div>
+      <div class="mdl-card__supporting-text" style="width:100%">
+        <p>Base URL: <b class="base"></b>. Send your key in the <code>X-API-Key</code> header. Every response is JSON with <code>"ok": true|false</code>.
+        Only <b id="slots">2</b> downloads run at once; the rest wait in line and start automatically (<code>queue_position</code> tells you where you are).</p>
+        <table class="mdl-data-table"><tbody>
+          <tr><td><code>POST /api/analyze</code></td><td class="w">{"url": "…"} → title, thumbnail, video qualities, audio formats</td></tr>
+          <tr><td><code>POST /api/download/video</code></td><td class="w">{"url","quality":"1080|best","container":"mp4|webm"} → job</td></tr>
+          <tr><td><code>POST /api/download/audio</code></td><td class="w">{"url","format":"best|mp3|m4a|opus|wav|flac","bitrate":192} → job</td></tr>
+          <tr><td><code>GET /api/progress/&lt;job_id&gt;</code></td><td class="w">stage, percent, queue_position (0 = running), result.download_url when ready</td></tr>
+          <tr><td><code>GET /api/download/&lt;job_id&gt;</code></td><td class="w">the file (supports Range); kept for ~30 minutes</td></tr>
+          <tr><td><code>POST /api/cancel/&lt;job_id&gt;</code></td><td class="w">stop a download or leave the line</td></tr>
+          <tr><td><code>GET /api/health</code></td><td class="w">server health, no key needed</td></tr>
+          <tr><td><code>GET /api/update?code=N</code></td><td class="w">the newest update if N is older, else null; no key needed</td></tr>
+        </tbody></table>
+        <p class="muted">Errors: 401 wrong key · 422 link not supported / private · 429 rate limit or too many downloads for one client · 503 server tools missing.</p>
+<pre id="curl"></pre></div></div>
+
+  </div></main>
+</div>
+<script>
+const $ = id => document.getElementById(id);
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const bytes = n => !n ? '0 B' : n < 1048576 ? (n/1024).toFixed(0)+' KB' : n < 1073741824 ? (n/1048576).toFixed(1)+' MB' : (n/1073741824).toFixed(2)+' GB';
+const ago = t => { if(!t) return '—'; const s = Math.max(0, Date.now()/1000 - t); return s < 60 ? Math.floor(s)+'s ago' : s < 3600 ? Math.floor(s/60)+'m ago' : s < 86400 ? Math.floor(s/3600)+'h ago' : Math.floor(s/86400)+'d ago'; };
+const dur = s => { const d=Math.floor(s/86400), h=Math.floor(s%86400/3600), m=Math.floor(s%3600/60); return (d?d+'d ':'')+(h||d?h+'h ':'')+m+'m'; };
+async function call(method, path, body) {
+  const r = await fetch('/admin/api' + path, { method, headers: { 'X-Requested-With': 'tinycrap', 'Content-Type': 'application/json' }, body: body ? JSON.stringify(body) : undefined });
+  const j = await r.json().catch(() => ({}));
+  if (!r.ok || j.ok === false) throw new Error((j.error && j.error.message) || 'Request failed');
+  return j;
+}
+const act = (fn) => async (...a) => { try { await fn(...a); load(); } catch (e) { alert(e.message); } };
+let data = null;
+
+function render(d) {
+  const a = d.app, ok = a.status === 'ok';
+  $('health').innerHTML =
+    `<div class="big ${ok ? 'ok' : a.status === 'degraded' ? 'warn' : 'bad'}">${esc(a.status.toUpperCase())}</div>` +
+    `<p>${esc(a.name)} ${esc(a.version)} · up ${dur(a.uptime)}</p>` +
+    `<span class="stat">yt-dlp<br><b>${esc(a.yt_dlp || 'missing')}</b></span><span class="stat">FFmpeg<br><b class="${a.ffmpeg ? 'ok' : 'bad'}">${a.ffmpeg ? 'ready' : 'missing'}</b></span>` +
+    `<span class="stat">Python<br><b>${esc(a.python)}</b></span><span class="stat">Free disk<br><b>${bytes(a.disk_free)}</b></span>` +
+    [...a.problems.map(p => `<div class="bad">• ${esc(p)}</div>`), ...a.warnings.map(p => `<div class="warn">• ${esc(p)}</div>`)].join('');
+  const s = d.stats, pf = Object.entries(s.platforms).map(([k, v]) => `${esc(k)} ${v}`).join(' · ') || '—';
+  $('stats').innerHTML = `<div class="big">${s.completed}</div><div class="muted">completed downloads since ${new Date(s.since*1000).toLocaleDateString()}</div><br>` +
+    `<span class="stat">Requested<br><b>${s.started}</b></span><span class="stat">Failed<br><b>${s.failed}</b></span><span class="stat">Cancelled<br><b>${s.cancelled}</b></span>` +
+    `<span class="stat">Data served<br><b>${bytes(s.bytes)}</b></span><div class="muted">By platform: ${pf}</div>`;
+  const q = d.queue;
+  $('queue').textContent = `Running ${d.jobs.running.length} of ${d.limits.concurrent} places · ${d.jobs.waiting.length} waiting · per client limit ${d.limits.per_client}`;
+  const row = (j, extra) => `<tr><td>${esc(j.platform)} ${esc(j.kind)}</td><td class="w">${esc(j.url)}</td><td>${extra}</td><td>${ago(j.created)}</td><td>${j.finished_at ? '' : `<button class="mdl-button mdl-button--icon" title="Cancel" onclick="cancelJob('${esc(j.id)}')"><i class="material-icons">close</i></button>`}</td></tr>`;
+  const jr = d.jobs.running.map(j => row(j, `<div class="bar"><i style="width:${j.percent}%"></i></div>${esc(j.message)} ${j.percent}%`));
+  const jw = d.jobs.waiting.map(j => row(j, `waiting · #${j.queue_position}`));
+  const jd = d.jobs.recent.map(j => row(j, j.stage === 'ready' ? `<span class="ok">done ${bytes(j.size)}</span>` : `<span class="bad">${esc(j.error || 'failed')}</span>`));
+  $('jobs').innerHTML = `<table class="mdl-data-table"><thead><tr><th>Type</th><th>Link</th><th>State</th><th>Started</th><th></th></tr></thead><tbody>${jr.concat(jw, jd).join('') || '<tr><td colspan=5 class="muted">Nothing yet</td></tr>'}</tbody></table>`;
+  if (document.activeElement !== $('req')) { $('req').checked = d.settings.require_key || d.settings.env_key; $('req').disabled = d.settings.env_key; (d.settings.require_key || d.settings.env_key) ? $('req').parentNode.classList.add('is-checked') : $('req').parentNode.classList.remove('is-checked'); }
+  $('reqnote').textContent = d.settings.env_key ? 'A shared key is set in the server settings (TINYCRAP_API_KEY), so keys are always required.' : (d.settings.require_key ? 'The Tiny Crap app needs its key typed into Settings → Server.' : 'Off: anyone who can reach this server can use it. Turn on once customers have keys.');
+  $('keys').innerHTML = `<table class="mdl-data-table"><thead><tr><th>Name</th><th>Key</th><th>Limit/min</th><th>Requests</th><th>Last used</th><th></th></tr></thead><tbody>` +
+    (d.keys.map(k => `<tr><td>${esc(k.name)}</td><td><code>${esc(k.prefix)}…</code></td><td>${k.per_minute || 'default'}</td><td>${k.requests}</td><td>${ago(k.last_used)}</td>` +
+      `<td><button class="mdl-button" onclick="toggleKey('${k.id}')">${k.active ? 'Disable' : 'Enable'}</button><button class="mdl-button" onclick="delKey('${k.id}')">Delete</button></td></tr>`).join('') || '<tr><td colspan=6 class="muted">No keys yet</td></tr>') + '</tbody></table>';
+  $('updates').innerHTML = `<table class="mdl-data-table"><thead><tr><th>Code</th><th>Version</th><th>Title</th><th>Link</th><th></th></tr></thead><tbody>` +
+    (d.updates.map((u, i) => `<tr><td>${u.version_code}${i === 0 ? ' <span class="ok">· active</span>' : ''}</td><td>${esc(u.version_name)}</td><td>${esc(u.title)}</td><td class="w">${esc(u.link)}</td>` +
+      `<td><button class="mdl-button" onclick="delUpdate('${u.id}')">Remove</button></td></tr>`).join('') || '<tr><td colspan=5 class="muted">No update published. Apps run normally.</td></tr>') + '</tbody></table>';
+  document.querySelectorAll('.base').forEach(e => e.textContent = d.base);
+  $('slots').textContent = d.limits.concurrent;
+  $('curl').textContent = `curl -X POST ${d.base}/api/analyze -H "X-API-Key: YOUR_KEY" -H "Content-Type: application/json" -d '{"url":"https://www.youtube.com/watch?v=…"}'\n\n` +
+    `curl -X POST ${d.base}/api/download/video -H "X-API-Key: YOUR_KEY" -H "Content-Type: application/json" -d '{"url":"…","quality":"720","container":"mp4"}'\n` +
+    `# → {"job":{"job_id":"abc…","queue_position":2}}\n\ncurl ${d.base}/api/progress/JOB_ID -H "X-API-Key: YOUR_KEY"\ncurl -OJ ${d.base}/api/download/JOB_ID -H "X-API-Key: YOUR_KEY"`;
+}
+async function load() {
+  try { data = await call('GET', '/overview'); render(data); $('live').textContent = 'live · ' + new Date().toLocaleTimeString(); }
+  catch (e) { $('live').textContent = 'offline'; }
+}
+const makeKey = act(async () => {
+  const r = await call('POST', '/keys', { name: $('kname').value, per_minute: $('krate').value });
+  $('newkey').style.display = 'block'; $('newkey').innerHTML = `Copy it now, it is shown only once:<br><b>${esc(r.key.key)}</b>`;
+  $('kname').value = $('krate').value = '';
+});
+const toggleKey = act(id => call('POST', `/keys/${id}/toggle`));
+const delKey = act(id => confirm('Delete this key? Apps using it stop working.') && call('DELETE', `/keys/${id}`));
+const cancelJob = act(id => call('POST', `/jobs/${id}/cancel`));
+const makeUpdate = act(async () => {
+  if (!confirm('Publish this update? Older apps will be blocked until they install it.')) return;
+  await call('POST', '/updates', { title: $('utitle').value, link: $('ulink').value, version_code: $('ucode').value, version_name: $('uname').value });
+  ['utitle', 'ulink', 'ucode', 'uname'].forEach(i => $(i).value = '');
+});
+const delUpdate = act(id => confirm('Remove this update notice?') && call('DELETE', `/updates/${id}`));
+$('req').addEventListener('change', act(() => call('POST', '/settings', { require_key: $('req').checked })));
+load(); setInterval(load, 3000);
+</script>
+</body>
+</html>

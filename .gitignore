@@ -1,0 +1,56 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+
+# Virtual Environments
+.venv/
+venv/
+env/
+ENV/
+env.bak/
+venv.bak/
+
+# Environment and sensitive data
+.env
+.env.*
+!.env.example
+*.local
+admin_password.txt
+state.json
+data/
+backend/data/
+tmp_downloads/
+backend/tmp_downloads/
+
+# Gradle & Android build files
+.gradle/
+**/build/
+build/
+app/build/
+*.iml
+.idea/
+local.properties
+.externalNativeBuild/
+.cxx/
+captures/
+
+# APKs and bundles
+*.apk
+*.aab
+*.ap_
+*.dex
+
+# Keystores and signing files
+*.jks
+*.keystore
+*.key
+*.pem
+*.pk8
+
+# OS & Editor files
+.DS_Store
+Thumbs.db
+desktop.ini
+.vscode/

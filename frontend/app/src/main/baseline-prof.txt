@@ -1,0 +1,4 @@
+# Baseline profile for Tiny Crap: pre-compiles the app's own code at install time so the first frames,
+# swipes and animations don't stutter while the JIT warms up. (profileinstaller applies it on sideloaded installs too.)
+HSPLcom/tinycrap/app/**->**(**)**
+Lcom/tinycrap/app/**;
